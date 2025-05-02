@@ -69,7 +69,7 @@ if [[ "$mode" == "1" ]]; then
     output_file="${OUTPUT_DIR}/${hostname}.txt"
 
     echo "[+] Menjalankan Nuclei pada $target_url ..."
-    nuclei -ss host-spray -es info -t "$TEMPLATE_DIR" -u "$target_url" -o "$output_file"
+    nuclei -ni -ss host-spray -es info -t "$TEMPLATE_DIR" -u "$target_url" -o "$output_file"
 
     echo "[+] Hasil disimpan di: $output_file"
 
@@ -90,7 +90,7 @@ elif [[ "$mode" == "2" ]]; then
     echo "[+] Menjalankan Nuclei untuk banyak target..."
 
     # Gunakan opsi -list untuk memproses banyak URL
-    nuclei -ss host-spray -es info -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file"
+    nuclei -ni -ss host-spray -es info -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file"
 
     echo "[+] Hasil disimpan di: $output_file"
 

@@ -105,6 +105,8 @@ elif [[ "$mode" == "3" ]]; then
     domain=$(echo "$target" | sed 's|https\?://||' | sed 's|/.*||')
     
     # Temp folder untuk file JS
+    rm -rf js-files/
+    rm parsed_output.txt
     mkdir -p js-files
     
     echo "[*] Mencari semua link .js dari $target ..."

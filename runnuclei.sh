@@ -110,8 +110,8 @@ elif [[ "$mode" == "3" ]]; then
     echo "[*] Mencari semua link .js dari $target ..."
     
     # Download semua link .js dari halaman
-    js_links=$(curl -s "$target" | grep -oP '(?<=src=")[^"]+\.js' | sort -u)
-    
+    js_links=$(curl -s -k -L "$target" | grep -oP '(?<=src=")[^"]+\.js' | sort -u)
+    wget $target -O "js-files/index.html"
     if [[ -z "$js_links" ]]; then
         echo "[!] Tidak ditemukan file .js di halaman."
         exit 1
@@ -154,6 +154,7 @@ elif [[ "$mode" == "3" ]]; then
     
     # Bersihkan parsed_output lama kalau ada
     > "$parsed_output_file"
+    grep -oP "(?<=['\"])\/[a-zA-Z0-9/_\-]+(?=['\"])" js-files/index.html  | sort -u >> "$parsed_output_file"
     
     # Baca file baris per baris
     while IFS= read -r line; do

@@ -140,7 +140,7 @@ elif [[ "$mode" == "3" ]]; then
     echo "[*] Mulai scanning semua file dengan nuclei templates..."
     
     # Memindai semua .yaml dari subfolder apa pun di dalam folder Nuclei-bug-hunter
-    nuclei -nh -file -target js-files -o "$output_file"
+    nuclei -ni -nh -file -target js-files -o "$output_file"
     
     echo "[*] Selesai scanning! Hasil disimpan di: $output_file"
 

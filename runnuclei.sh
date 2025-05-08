@@ -28,7 +28,7 @@ fi
 # --- Pilih Template ---
 echo
 echo "Pilih template scan:"
-echo "1) Semua template (Termasuk scan file)"
+echo "1) Semua template (Termasuk scan file js)"
 echo "2) HTTP CVE (default)"
 echo "3) DAST"
 echo "4) Network"

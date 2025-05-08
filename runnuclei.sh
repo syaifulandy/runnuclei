@@ -13,6 +13,8 @@ declare -A TEMPLATE_OPTIONS=(
     ["2"]="$TEMPLATE_BASE/http/cves"
     ["3"]="$TEMPLATE_BASE/dast"
     ["4"]="$TEMPLATE_BASE/network"
+    ["5"]="$TEMPLATE_BASE"
+    
 )
 
 # --- Output Directory ---
@@ -26,7 +28,7 @@ fi
 # --- Pilih Template ---
 echo
 echo "Pilih template scan:"
-echo "1) Semua template"
+echo "1) Semua template (Termasuk scan file)"
 echo "2) HTTP CVE (default)"
 echo "3) DAST"
 echo "4) Network"
@@ -45,6 +47,7 @@ echo
 echo "Pilih mode scan:"
 echo "1) Satu target"
 echo "2) Banyak target dari file"
+echo "3) Scan Local File"
 read mode
 
 # --- Fungsi Normalisasi URL ---
@@ -93,6 +96,51 @@ elif [[ "$mode" == "2" ]]; then
     nuclei -ni -ss host-spray -es info -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file"
 
     echo "[+] Hasil disimpan di: $output_file"
+
+elif [[ "$mode" == "3" ]]; then
+    # Input: target domain, scanner akan download semua file js
+    read -p "Masukkan target domain (contoh: https://example.com): " target
+    
+    # Bersihkan URL
+    domain=$(echo "$target" | sed 's|https\?://||' | sed 's|/.*||')
+    
+    # Temp folder untuk file JS
+    mkdir -p js-files
+    
+    echo "[*] Mencari semua link .js dari $target ..."
+    
+    # Download semua link .js dari halaman
+    js_links=$(curl -s "$target" | grep -oP '(?<=src=")[^"]+\.js' | sort -u)
+    
+    if [[ -z "$js_links" ]]; then
+        echo "[!] Tidak ditemukan file .js di halaman."
+        exit 1
+    fi
+    
+    # Download semua file JS
+    for link in $js_links; do
+        if [[ "$link" == http* ]]; then
+            url="$link"
+        else
+            url="$target/${link#/}"
+        fi
+        filename=$(basename "$link")
+        echo "[*] Downloading $url ..."
+        wget -q "$url" -O "js-files/$filename"
+    done
+    
+    echo "[*] Semua file JS sudah di-download ke folder js-files/"
+    
+    # Output file
+    output_file="${domain}-results.txt"
+    
+    # Mulai scanning
+    echo "[*] Mulai scanning semua file dengan nuclei templates..."
+    
+    # Memindai semua .yaml dari subfolder apa pun di dalam folder Nuclei-bug-hunter
+    nuclei -nh -file -target js-files -o "$output_file"
+    
+    echo "[*] Selesai scanning! Hasil disimpan di: $output_file"
 
 else
     echo "[ERROR] Pilihan tidak valid. Silakan pilih 1 atau 2."

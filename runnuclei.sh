@@ -152,17 +152,20 @@ elif [[ "$mode" == "3" ]]; then
     
     echo "[*] Memproses file $output_file..."
     
-    # Bersihkan dan parsing
+    # Bersihkan parsed_output lama kalau ada
+    > "$parsed_output_file"
+    
+    # Baca file baris per baris
     while IFS= read -r line; do
-        # Hilangkan [ ] dan "
-        cleaned=$(echo "$line" | sed 's/\[\|\]\|"\]//g')
-        
-        # Split berdasarkan koma
+        # 1. Hilangkan semua karakter [ ] dan "
+        cleaned=$(echo "$line" | sed 's/[][]//g' | tr -d '"')
+    
+        # 2. Split berdasarkan koma
         IFS=',' read -ra parts <<< "$cleaned"
-        
+    
         for part in "${parts[@]}"; do
-            # Hapus spasi depan belakang
-            trimmed=$(echo "$part" | xargs)
+            # 3. Trim spasi/tab
+            trimmed=$(echo "$part" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             if [ -n "$trimmed" ]; then
                 echo "$trimmed" >> "$parsed_output_file"
             fi

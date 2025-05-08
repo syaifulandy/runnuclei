@@ -142,6 +142,35 @@ elif [[ "$mode" == "3" ]]; then
     
     echo "[*] Selesai scanning! Hasil disimpan di: $output_file"
 
+    parsed_output_file="parsed_output.txt"
+
+    # Cek file
+    if [ ! -f "$output_file" ]; then
+        echo "File $output_file tidak ditemukan!"
+        exit 1
+    fi
+    
+    echo "[*] Memproses file $output_file..."
+    
+    # Bersihkan dan parsing
+    while IFS= read -r line; do
+        # Hilangkan [ ] dan "
+        cleaned=$(echo "$line" | sed 's/\[\|\]\|"\]//g')
+        
+        # Split berdasarkan koma
+        IFS=',' read -ra parts <<< "$cleaned"
+        
+        for part in "${parts[@]}"; do
+            # Hapus spasi depan belakang
+            trimmed=$(echo "$part" | xargs)
+            if [ -n "$trimmed" ]; then
+                echo "$trimmed" >> "$parsed_output_file"
+            fi
+        done
+    done < "$output_file"
+    
+    echo "[*] Parsing selesai! Hasil disimpan di: $parsed_output_file"
+
 else
     echo "[ERROR] Pilihan tidak valid. Silakan pilih 1 atau 2."
     exit 1

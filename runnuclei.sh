@@ -113,7 +113,7 @@ elif [[ "$mode" == "3" ]]; then
     
     # Download semua link .js dari halaman
     js_links=$(curl -s -k -L "$target" | grep -oP '(?<=src=")[^"]+\.js' | sort -u)
-    wget $target -O "js-files/index.html"
+    curl -s -k -L $target -o "js-files/index.html"
     if [[ -z "$js_links" ]]; then
         echo "[!] Tidak ditemukan file .js di halaman."
         exit 1

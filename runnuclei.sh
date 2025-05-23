@@ -13,8 +13,6 @@ declare -A TEMPLATE_OPTIONS=(
     ["2"]="$TEMPLATE_BASE/http/cves"
     ["3"]="$TEMPLATE_BASE/dast"
     ["4"]="$TEMPLATE_BASE/network"
-    ["5"]="$TEMPLATE_BASE"
-    
 )
 
 # --- Output Directory ---
@@ -42,13 +40,27 @@ fi
 
 echo "[*] Template yang digunakan: $TEMPLATE_DIR"
 
+# --- Fungsi Flag Scan Berdasarkan Template ---
+get_scan_flags() {
+    if [[ "$template_choice" == "2" || -z "$template_choice" ]]; then
+        echo "-es info"
+    else
+        read -p "Gunakan mode auto-scan (-as)? [Y/n]: " as_choice
+        if [[ "$as_choice" =~ ^[Nn]$ ]]; then
+            echo "-es info"
+        else
+            echo "-as"
+        fi
+    fi
+}
+
 # --- Pilih Mode Target ---
 echo
 echo "Pilih mode scan:"
 echo "1) Satu target"
 echo "2) Banyak target dari file"
-echo "3) Scan Local File"
-read mode
+echo "3) Scan Local File (JS static)"
+read -p "Masukkan pilihan: " mode
 
 # --- Fungsi Normalisasi URL ---
 normalize_url() {
@@ -60,9 +72,9 @@ normalize_url() {
     fi
 }
 
+# --- Eksekusi berdasarkan mode ---
 if [[ "$mode" == "1" ]]; then
-    echo "Masukkan URL target (contoh: example.com atau https://example.com):"
-    read target_url
+    read -p "Masukkan URL target (contoh: example.com atau https://example.com): " target_url
     if [[ -z "$target_url" ]]; then
         echo "[ERROR] URL tidak boleh kosong!"
         exit 1
@@ -71,56 +83,51 @@ if [[ "$mode" == "1" ]]; then
     hostname=$(echo "$target_url" | awk -F[/:] '{print $4}')
     output_file="${OUTPUT_DIR}/${hostname}.txt"
 
+    flags=$(get_scan_flags)
+
     echo "[+] Menjalankan Nuclei pada $target_url ..."
-    nuclei -ni -ss host-spray -es info -t "$TEMPLATE_DIR" -u "$target_url" -o "$output_file"  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    nuclei -ni -ss host-spray $flags -t "$TEMPLATE_DIR" -u "$target_url" -o "$output_file" \
+        -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
     echo "[+] Hasil disimpan di: $output_file"
 
 elif [[ "$mode" == "2" ]]; then
-    echo "Masukkan path file target (contoh: targets.txt):"
-    read target_file
+    read -p "Masukkan path file target (contoh: targets.txt): " target_file
     if [[ ! -f "$target_file" ]]; then
         echo "[ERROR] File '$target_file' tidak ditemukan!"
         exit 1
     fi
-
     if [[ ! -s "$target_file" ]]; then
         echo "[ERROR] File '$target_file' kosong!"
         exit 1
     fi
 
+    flags=$(get_scan_flags)
     output_file="${OUTPUT_DIR}/results.txt"
     echo "[+] Menjalankan Nuclei untuk banyak target..."
 
-    # Gunakan opsi -list untuk memproses banyak URL
-    nuclei -ni -ss host-spray -es info -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file"  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    nuclei -ni -ss host-spray $flags -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file" \
+        -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
     echo "[+] Hasil disimpan di: $output_file"
 
 elif [[ "$mode" == "3" ]]; then
-    # Input: target domain, scanner akan download semua file js
     read -p "Masukkan target domain (contoh: https://example.com): " target
-    
-    # Bersihkan URL
     domain=$(echo "$target" | sed 's|https\?://||' | sed 's|/.*||')
-    
-    # Temp folder untuk file JS
+
     rm -rf js-files/
-    rm parsed_output.txt
+    rm -f parsed_output.txt
     mkdir -p js-files
-    
+
     echo "[*] Mencari semua link .js dari $target ..."
-    
-    # Download semua link .js dari halaman
     js_links=$(curl -s -k -L "$target" | grep -oP '(?<=src=")[^"]+\.js' | sort -u)
-    # Download juga file index.html web buat analisis
-    curl -s -k -L $target -o "js-files/index.html"
+    curl -s -k -L "$target" -o "js-files/index.html"
+
     if [[ -z "$js_links" ]]; then
         echo "[!] Tidak ditemukan file .js di halaman."
         exit 1
     fi
-    
-    # Download semua file JS
+
     for link in $js_links; do
         if [[ "$link" == http* ]]; then
             url="$link"
@@ -131,56 +138,41 @@ elif [[ "$mode" == "3" ]]; then
         echo "[*] Downloading $url ..."
         wget -q "$url" -O "js-files/$filename"
     done
-    
+
     echo "[*] Semua file JS sudah di-download ke folder js-files/"
-    
-    # Output file
-    output_file="${domain}-results.txt"
-    
-    # Mulai scanning
+
+    output_file="${OUTPUT_DIR}/${domain}-results.txt"
     echo "[*] Mulai scanning semua file dengan nuclei templates..."
-    
-    # Memindai semua .yaml dari subfolder apa pun di dalam folder Nuclei-bug-hunter
-    nuclei -ni -nh -file -target js-files -o "$output_file"
-    
+
+    nuclei -ni -nh -file -target js-files -t "$TEMPLATE_DIR" -o "$output_file"
+
     echo "[*] Selesai scanning! Hasil disimpan di: $output_file"
 
     parsed_output_file="parsed_output.txt"
-
-    # Cek file
     if [ ! -f "$output_file" ]; then
         echo "File $output_file tidak ditemukan!"
         exit 1
     fi
-    
+
     echo "[*] Memproses file $output_file..."
-    
-    # Bersihkan parsed_output lama kalau ada
     > "$parsed_output_file"
-    # Analisis file index.html
     grep -oP "https?://[^\s'\",)]+|/[^'\s),]+" js-files/index.html | sort -u >> "$parsed_output_file"
-    
-    # Baca file baris per baris
+
     while IFS= read -r line; do
-        # 1. Hilangkan semua karakter [ ] dan "
         cleaned=$(echo "$line" | sed 's/[][]//g' | tr -d '"')
-    
-        # 2. Split berdasarkan koma
         IFS=',' read -ra parts <<< "$cleaned"
-    
         for part in "${parts[@]}"; do
-            # 3. Trim spasi/tab
             trimmed=$(echo "$part" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             if [ -n "$trimmed" ]; then
                 echo "$trimmed" >> "$parsed_output_file"
             fi
         done
     done < "$output_file"
-    
+
     echo "[*] Parsing selesai! Hasil disimpan di: $parsed_output_file"
 
 else
-    echo "[ERROR] Pilihan tidak valid. Silakan pilih 1 atau 2."
+    echo "[ERROR] Pilihan tidak valid. Silakan pilih 1, 2, atau 3."
     exit 1
 fi
 

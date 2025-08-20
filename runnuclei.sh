@@ -104,9 +104,9 @@ elif [[ "$mode" == "2" ]]; then
 
     flags=$(get_scan_flags)
     output_file="${OUTPUT_DIR}/results.txt"
-    echo "[+] Menjalankan Nuclei untuk banyak target..."
+    echo "[+] Menjalankan Nuclei untuk banyak target (Severity Critical, High, Medium)..."
 
-    nuclei -ni -ss host-spray $flags -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file" \
+    nuclei -ni -ss host-spray -s critical,high,medium $flags -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file" \
         -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
     echo "[+] Hasil disimpan di: $output_file"
@@ -175,4 +175,3 @@ else
     echo "[ERROR] Pilihan tidak valid. Silakan pilih 1, 2, atau 3."
     exit 1
 fi
-

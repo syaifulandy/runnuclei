@@ -86,7 +86,7 @@ if [[ "$mode" == "1" ]]; then
     flags=$(get_scan_flags)
 
     echo "[+] Menjalankan Nuclei pada $target_url ..."
-    nuclei -ni -ss host-spray $flags -t "$TEMPLATE_DIR" -u "$target_url" -o "$output_file" \
+    nuclei -mhe 5 -ni -ss host-spray $flags -t "$TEMPLATE_DIR" -u "$target_url" -o "$output_file" \
         -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
     echo "[+] Hasil disimpan di: $output_file"
@@ -106,7 +106,7 @@ elif [[ "$mode" == "2" ]]; then
     output_file="${OUTPUT_DIR}/results.txt"
     echo "[+] Menjalankan Nuclei untuk banyak target (Severity Critical, High, Medium)..."
 
-    nuclei -ni -ss host-spray -s critical,high,medium $flags -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file" \
+    nuclei -mhe 5 -ni -ss host-spray -s critical,high,medium $flags -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file" \
         -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
     echo "[+] Hasil disimpan di: $output_file"
@@ -144,7 +144,7 @@ elif [[ "$mode" == "3" ]]; then
     output_file="${OUTPUT_DIR}/${domain}-results.txt"
     echo "[*] Mulai scanning semua file dengan nuclei templates..."
 
-    nuclei -ni -nh -file -target js-files -t "$TEMPLATE_DIR" -o "$output_file"
+    nuclei -mhe 5 -ni -nh -file -target js-files -t "$TEMPLATE_DIR" -o "$output_file"
 
     echo "[*] Selesai scanning! Hasil disimpan di: $output_file"
 

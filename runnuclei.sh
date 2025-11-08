@@ -106,7 +106,7 @@ elif [[ "$mode" == "2" ]]; then
     output_file="${OUTPUT_DIR}/results.txt"
     echo "[+] Menjalankan Nuclei untuk banyak target (Severity Critical, High, Medium)..."
 
-    nuclei -mhe 5 -ni -ss host-spray -s critical,high,medium $flags -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file" \
+    nuclei -mhe 5 -ni -nh -ss host-spray -s critical,high,medium $flags -t "$TEMPLATE_DIR" -list "$target_file" -o "$output_file" \
         -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
     echo "[+] Hasil disimpan di: $output_file"
